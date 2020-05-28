@@ -1,0 +1,50 @@
+import collections
+import numpy as np
+
+from .subset_sum import subset_sum
+
+##########################################
+####         Seating functions        ####
+##########################################
+def expand_counts(counts):
+    """
+    Helper function to convert family size to an array with a length equal to
+    the number of seats they take up.
+    """
+    expanded = []
+    for size, count in counts.items():
+        expanded.extend([size] * count)
+    return np.array(expanded)
+
+
+def get_pews(families, pews, margin):
+    """
+    Returns the optimal seating group sizes for each pew, as well as any
+    family sizes that aren't able to be seated (must go into overflow)
+    """
+    family_counts = collections.Counter(families)
+
+    perfect_pews = []
+    unmatched_pews = []
+    for pew_idx, pew in enumerate(pews):
+        pew += margin # Extend pew artificially
+
+        expanded = expand_counts(family_counts) + margin # Add margin to each family size
+
+        if len(expanded) == 0:
+            break # No more families to find a subset of!
+
+        subset = subset_sum(expanded, pew, mode='<=')
+
+        if not subset:
+            unmatched_pews.append(pew_idx)
+            continue
+
+        subset = np.array(subset) - margin # Revert to original family sizes
+
+        for fam in subset:
+            family_counts[fam] -= 1
+
+        perfect_pews.append((pew_idx, list(subset)))
+
+    return (perfect_pews, unmatched_pews, family_counts)

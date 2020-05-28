@@ -1,0 +1,10 @@
+# Don't upload personal data.
+*.csv
+*.xls
+*.xlsx
+
+# Python
+__pycache__
+
+# VSCode
+.vscode
