@@ -24,7 +24,7 @@ def get_pews(families, pews, margin):
     """
     family_counts = collections.Counter(families)
 
-    perfect_pews = []
+    matched_pews = []
     unmatched_pews = []
     for pew_idx, pew in enumerate(pews):
         pew += margin # Extend pew artificially
@@ -45,6 +45,21 @@ def get_pews(families, pews, margin):
         for fam in subset:
             family_counts[fam] -= 1
 
-        perfect_pews.append((pew_idx, list(subset)))
+        matched_pews.append((pew_idx, list(subset)))
 
-    return (perfect_pews, unmatched_pews, family_counts)
+    # Isolate all imperfect pews: pews that hypothetically could fit more people while still distancing
+    imperfect_pews = list(filter(lambda p: pew_leftover(pews[p[0]], p[1], margin) != 0, matched_pews))
+
+    # Try swapping between imperfect pews to find a perfect one
+    if len(imperfect_pews) > 1:
+        # TODO(chris): write logic for swapping here
+        pass
+
+    return (matched_pews, unmatched_pews, family_counts)
+
+def pew_leftover(pew_size, family_sizes, margin):
+    """
+    Returns the amount of leftover space within a pew that is not being used by the families currently sitting in it.
+    A family "uses" the spaces to seat family members, plus the margin to one side needed to maintain distance.
+    """
+    return pew_size + margin - sum(f + margin for f in family_sizes)

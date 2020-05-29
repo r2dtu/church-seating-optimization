@@ -130,7 +130,6 @@ def get_section_row_str( arr_idx, pew_ids ):
         assigned_seating - a list of tuples containing pew and family assignment
         pew_ids - tuple containing ordered lists of pew sections and row numbers
     """
-    print(pew_ids)
     sections = pew_ids[0]
     rows = pew_ids[1]
     return sections[arr_idx], rows[arr_idx]
