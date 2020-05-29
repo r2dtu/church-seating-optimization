@@ -1,11 +1,20 @@
 import numpy as np
+import csv
 
-from ..constants import *
+# Family input file constants
+FAMILY_NAME_IDX = 0
+FAMILY_SIZE_IDX = 1
+FAMILY_EMAIL_IDX = 2
+
+# Pew seating file constants
+SECTION_COL_IDX = 0
+ROW_NUM_IDX = 1
+CAPACITY_IDX = 2
 
 ##########################################
 ####     Input parsing functions      ####
 ##########################################
-def parse_reservations( household_reservation_filename ):
+def parse_family_file( family_file ):
     """
     Reads the CSV file containing family info. The file must be a CSV file,
     and have the following three columns: Family Name, Size of Family, E-mail
@@ -19,12 +28,11 @@ def parse_reservations( household_reservation_filename ):
     family_emails = []
 
     # Parse the seating chart file
-    with open( household_reservation_filename, 'r' ) as family_file:
-        for line in family_file.readlines():
-            row = line.split( "," )
-            family_names.append( row[FAMILY_NAME_IDX] )
-            family_sizes.append( row[FAMILY_SIZE_IDX] )
-            family_emails.append( row[FAMILY_EMAIL_IDX] )
+    for line in family_file.readlines():
+        row = line.split( "," )
+        family_names.append( row[FAMILY_NAME_IDX] )
+        family_sizes.append( row[FAMILY_SIZE_IDX] )
+        family_emails.append( row[FAMILY_EMAIL_IDX] )
 
     # Discard the first row of column labels
     family_names.pop( 0 )
@@ -34,34 +42,37 @@ def parse_reservations( household_reservation_filename ):
     return family_names, np.array( family_sizes ).astype(int), family_emails
 
 
-def parse_seating_file( seating_filename ):
+def parse_seating_file( seating_file ):
     """
     Reads the CSV file containing pew information. The file must be a CSV file,
     and have the following three columns: Section, Row #, Capacity.
 
-    Returns a 2D NumPy Array, each row is [Section, Row #, Capacity]
+    Returns a tuple of parallel np.arrays of the pew's id and the pew's capacity, respectively.
+
+        (pew_ids, capacities) = parse_seating_file(...)
     """
     pews = []
     # Parse the seating chart file
-    with open( seating_filename, 'r' ) as seating_file:
-        for line in seating_file.readlines():
-            row = line.split( "," )
-            pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], row[CAPACITY_IDX]] )
+    for line in seating_file.readlines():
+        row = line.split( "," )
+        pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], row[CAPACITY_IDX]] )
 
     # Discard the first row of column labels
     pews.pop( 0 )
 
-    return np.array( pews )
+    pews = np.array( pews )
+
+    return __get_pew_ids(pews), __get_pew_sizes(pews)
 
 
-def get_pew_ids( pew_info ):
+def __get_pew_ids( pew_info ):
     """
     Returns the section and row IDs
     """
     return pew_info[:, SECTION_COL_IDX], pew_info[:, ROW_NUM_IDX]
 
 
-def get_pew_sizes( pew_info ):
+def __get_pew_sizes( pew_info ):
     """
     Returns a list of the pew sizes from the pew info matrix.
     """
@@ -119,12 +130,13 @@ def get_section_row_str( arr_idx, pew_ids ):
         assigned_seating - a list of tuples containing pew and family assignment
         pew_ids - tuple containing ordered lists of pew sections and row numbers
     """
+    print(pew_ids)
     sections = pew_ids[0]
     rows = pew_ids[1]
     return sections[arr_idx], rows[arr_idx]
 
 
-def format_seat_assignments( assigned_seating, family_names, family_emails, pew_ids, pew_sizes ):
+def format_seat_assignments( assigned_seating, family_names, family_emails, pew_ids, pew_sizes, margin ):
     """
     Input looks like:
     [(row_idx, [('family1_name', family1_size), ...]), ...]
@@ -158,6 +170,16 @@ def format_seat_assignments( assigned_seating, family_names, family_emails, pew_
 
             # If not the end of the pew, add padding
             if next_open_seat != curr_pew_size - 1:
-                next_open_seat += MARGIN
+                next_open_seat += margin
 
     return rows
+
+def write_seat_assignments_csv( seat_assignments_file, formatted_rows ):
+    """
+    Writes out seat assignments to file.
+      - seat_assignments_file: The file object to write the seat assignments to.
+      - formatted_rows: A multi-dimensional list of rows to be written in a CSV format.
+    """
+    csv_out = csv.writer( seat_assignments_file )
+    csv_out.writerow( ("Check-in", "Family Name", "E-mail", "Section", "Row", "Seat #s") )
+    csv_out.writerows( formatted_rows )
