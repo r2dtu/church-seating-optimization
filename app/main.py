@@ -7,6 +7,9 @@ from flask import request, send_file
 from lib.constants import OUTPUT_FILE
 from backend_intf import main_driver
 
+# Run the app
+app = Flask(__name__)
+
 @app.route("/")
 def home_view():
     return render_template("index.html",
@@ -36,10 +39,3 @@ def upload():
 
     # Stream file object back
     return send_file( OUTPUT_FILE, as_attachment=True )
-
-
-if __name__ == '__main__':
-
-    # Run the app
-    app = Flask(__name__)
-
