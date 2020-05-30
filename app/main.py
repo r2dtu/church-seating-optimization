@@ -4,8 +4,8 @@ import tempfile
 from flask import Flask, render_template
 from flask import request, send_file
 
-from lib.constants import OUTPUT_FILE
-from backend_intf import main_driver
+from .lib.constants import OUTPUT_FILE
+from .backend_intf import main_driver
 
 # Run the app
 app = Flask(__name__)

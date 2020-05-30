@@ -1,7 +1,7 @@
 import math
 
-from lib.io import parse_seating_file, parse_family_file, get_section_row_str, transform_output, format_seat_assignments, write_seat_assignments_csv
-from lib.algo import expand_counts, get_pews
+from .lib.io import parse_seating_file, parse_family_file, get_section_row_str, transform_output, format_seat_assignments, write_seat_assignments_csv
+from .lib.algo import expand_counts, get_pews
 
 # Main driver constants
 INCHES_PER_FT = 12
