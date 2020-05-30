@@ -1,30 +1,45 @@
+import os
+import tempfile
+
 from flask import Flask, render_template
-from flask import request, stream_with_context, Response
+from flask import request, send_file
 
-from church_seating import main_driver
-
-app = Flask(__name__)
+from lib.constants import OUTPUT_FILE
+from backend_intf import main_driver
 
 @app.route("/")
 def home_view():
     return render_template("index.html",
                            title="Church Seating Optimization",
-                           description="WUTWUT")
+                           description="You have found an Easter Egg LOL")
 
 @app.route("/upload", methods = ["POST"])
 def upload():
-    maxCapacity = request.form['maxCapacity']
-    numReservedSeating = request.form['numReservedSeating']
-    sepRad = request.form['sepRad']
-    seatWidth = request.form['seatWidth']
-    pewFile = request.files['pewFile']
-    familyFile = request.files['familyFile']
+    # Extract request parameters and put into dict for backend
+    site_info = {}
+
+    site_info['maxCapacity'] = int( request.form['maxCapacity'] )
+    site_info['numReservedSeating'] = int( request.form['numReservedSeating'] )
+    site_info['sepRad'] = int( request.form['sepRad'] )
+    site_info['seatWidth'] = int( request.form['seatWidth'] )
+
+    # Make tmp files for CSV inputs
+    handle, site_info['pewFile'] = tempfile.mkstemp()
+    os.close( handle )
+    request.files['pewFile'].save( site_info['pewFile'] )
+    handle, site_info['familyFile'] = tempfile.mkstemp()
+    os.close( handle )
+    request.files['familyFile'].save( site_info['familyFile'] )
 
     # Call backend
-    seat_arr_str = main_driver(pewFile, familyFile, maxCapacity,
-                               numReservedSeating, sepRad, seatWidth)
+    main_driver( site_info, 'app/' + OUTPUT_FILE )
 
     # Stream file object back
-    return Response( seat_arr_str, mimetype='text/csv',
-                     headers={"Content-Disposition": 
-                     "attachment; filename=seating_arrangement.csv"})
+    return send_file( OUTPUT_FILE, as_attachment=True )
+
+
+if __name__ == '__main__':
+
+    # Run the app
+    app = Flask(__name__)
+
