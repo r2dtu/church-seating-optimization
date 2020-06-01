@@ -1,10 +1,15 @@
 import numpy as np
 import csv
 
+from http import HTTPStatus
+from werkzeug.exceptions import BadRequest
+from ... import backend_intf as bi
+
 # Family input file constants
-FAMILY_NAME_IDX = 0
-FAMILY_SIZE_IDX = 1
-FAMILY_EMAIL_IDX = 2
+FAMILY_FNAME_IDX = 0
+FAMILY_LNAME_IDX = 1
+FAMILY_SIZE_IDX = 2
+FAMILY_EMAIL_IDX = 3
 
 # Pew seating file constants
 SECTION_COL_IDX = 0
@@ -27,17 +32,19 @@ def parse_family_file( family_file ):
     family_sizes = []
     family_emails = []
 
-    # Parse the seating chart file
-    for line in family_file.readlines():
-        row = line.split( "," )
-        family_names.append( row[FAMILY_NAME_IDX] )
-        family_sizes.append( row[FAMILY_SIZE_IDX] )
-        family_emails.append( row[FAMILY_EMAIL_IDX] )
-
     # Discard the first row of column labels
-    family_names.pop( 0 )
-    family_sizes.pop( 0 )
-    family_emails.pop( 0 )
+    family_file.readline()
+
+    # Parse the seating chart file
+    for i, line in enumerate( family_file.readlines() ):
+        try:
+            row = line.split( "," )
+            family_names.append( row[FAMILY_FNAME_IDX] + "," + row[FAMILY_LNAME_IDX] )
+            family_sizes.append( int( row[FAMILY_SIZE_IDX] ) )
+            family_emails.append( row[FAMILY_EMAIL_IDX] )
+        except ValueError:
+            err_str = bi.create_json_err_msg( "Family Reservations File: Line " + str( i + 1 ) + " – \"" + line + "\"", None, HTTPStatus.BAD_REQUEST )
+            raise BadRequest( description=err_str )
 
     return family_names, np.array( family_sizes ).astype(int), family_emails
 
@@ -52,13 +59,18 @@ def parse_seating_file( seating_file ):
         (pew_ids, capacities) = parse_seating_file(...)
     """
     pews = []
-    # Parse the seating chart file
-    for line in seating_file.readlines():
-        row = line.split( "," )
-        pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], row[CAPACITY_IDX]] )
 
     # Discard the first row of column labels
-    pews.pop( 0 )
+    seating_file.readline()
+
+    # Parse the seating chart file
+    for i, line in enumerate( seating_file.readlines() ):
+        try:
+            row = line.split( "," )
+            pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], int( row[CAPACITY_IDX] )] )
+        except ValueError:
+            err_str = bi.create_json_err_msg( "Pew Info File: Line " + str( i + 1 ) + " – \"" + line + "\"", None, HTTPStatus.BAD_REQUEST )
+            raise BadRequest( description=err_str )
 
     pews = np.array( pews )
 
@@ -124,7 +136,7 @@ def transform_output( optimal_pew_groups, family_names, family_sizes ):
 
 def get_section_row_str( arr_idx, pew_ids ):
     """
-    Converts all the array index row IDs to real section and row #s.
+    Converts all the array index row IDs to real door, section and row #s.
 
     Parameters:
         assigned_seating - a list of tuples containing pew and family assignment
@@ -132,10 +144,10 @@ def get_section_row_str( arr_idx, pew_ids ):
     """
     sections = pew_ids[0]
     rows = pew_ids[1]
-    return sections[arr_idx], rows[arr_idx]
+    return sections[arr_idx], sections[arr_idx], rows[arr_idx]
 
 
-def format_seat_assignments( assigned_seating, family_names, family_emails, pew_ids, pew_sizes, margin ):
+def format_seat_assignments( assigned_seating, family_names, family_sizes, family_emails, pew_ids, pew_sizes, margin ):
     """
     Input looks like:
     [(row_idx, [('family1_name', family1_size), ...]), ...]
@@ -147,13 +159,14 @@ def format_seat_assignments( assigned_seating, family_names, family_emails, pew_
         row_idx = pew[0]
         seating = pew[1]
         for family in seating:
-            name = family[0]
+            name = family[0].split(",")
+            fname, lname = name[0], name[1]
             size = family[1]
 
             # Get the family's info to print
             idx = family_names.index( family[0] )
 
-            row = ("N", name, family_emails[idx])
+            row = ("N", fname, lname, family_sizes[idx], family_emails[idx])
             row += get_section_row_str( row_idx, pew_ids )
 
             curr_pew_size = pew_sizes[row_idx]
@@ -173,6 +186,7 @@ def format_seat_assignments( assigned_seating, family_names, family_emails, pew_
 
     return rows
 
+
 def write_seat_assignments_csv( seat_assignments_file, formatted_rows ):
     """
     Writes out seat assignments to file.
@@ -180,5 +194,6 @@ def write_seat_assignments_csv( seat_assignments_file, formatted_rows ):
       - formatted_rows: A multi-dimensional list of rows to be written in a CSV format.
     """
     csv_out = csv.writer( seat_assignments_file )
-    csv_out.writerow( ("Check-in", "Family Name", "E-mail", "Section", "Row", "Seat #s") )
+    csv_out.writerow( ("Check-in", "First Name", "Last Name", "Size", "E-mail", "Door", "Section", "Row", "Seat #s") )
     csv_out.writerows( formatted_rows )
+
