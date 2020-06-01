@@ -34,6 +34,5 @@ def main_driver( site_info, output_file ):
         formatted_rows = format_seat_assignments( assigned_seating, family_names, family_emails, pew_ids, pew_sizes, margin )
 
         # Write out the output
-        with open( output_file, 'w' ) as out:
-            write_seat_assignments_csv( out, formatted_rows )
+        write_seat_assignments_csv( output_file, formatted_rows )
 
