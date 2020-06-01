@@ -4,6 +4,8 @@ import tempfile
 from flask import Flask, render_template
 from flask import request, send_file, jsonify
 
+from http import HTTPStatus
+
 from .lib.constants import OUTPUT_FILE
 from .backend_intf import main_driver
 
@@ -38,7 +40,7 @@ def upload():
     request.files['familyFile'].save( site_info['familyFile'] )
 
     # Call backend
-    with tempfile.NamedTemporaryFile(mode='w+') as temp_output_file, open( site_info['pewFile'] ) as pew_file, open( site_info['familyFile'] ) as family_file::
+    with tempfile.NamedTemporaryFile(mode='w+') as temp_output_file, open( site_info['pewFile'] ) as pew_file, open( site_info['familyFile'] ) as family_file:
         site_info['pewFile'] = open( site_info['pewFile'] )
         site_info['familyFile'] = open( site_info['familyFile'] )
         err_msg, status_code = main_driver( site_info, temp_output_file )
