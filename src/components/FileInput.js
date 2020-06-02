@@ -7,7 +7,7 @@ const FileInput = ({ label, placeholder, explanation, field, form, meta, ...prop
     <>
       <Form.Label>{label}</Form.Label>
       <Form.File
-        label={placeholder}
+        label={field.value.name || placeholder}
         custom
         feedback={meta.error}
         name={field.name}

@@ -1,5 +1,6 @@
 import os
 import tempfile
+import traceback
 
 from flask import Flask, render_template
 from flask import request, send_file, jsonify
@@ -40,31 +41,43 @@ def test():
 
 @app.route("/api/upload", methods = ["POST"])
 def upload():
-    # Extract request parameters and put into dict for backend
-    site_info = {}
+    try:
+        # Extract request parameters and put into dict for backend
+        site_info = {}
 
-    # This info is checked on front-end, so they are valid integers
-    site_info['maxCapacity'] = int( request.form['maxCapacity'] )
-    site_info['numReservedSeating'] = int( request.form['reservedSeating'] )
-    site_info['sepRad'] = int( request.form['separationRadius'] )
-    site_info['seatWidth'] = int( request.form['seatWidth'] )
+        # This info is checked on front-end, so they are valid integers
+        site_info['maxCapacity'] = int( request.form['maxCapacity'] )
+        site_info['numReservedSeating'] = int( request.form['reservedSeating'] )
+        site_info['sepRad'] = int( request.form['separationRadius'] )
+        site_info['seatWidth'] = int( request.form['seatWidth'] )
+        site_info['pewFile'] = request.files['pewFile']
+        site_info['familyFile'] = request.files['familyFile']
 
-    # Make tmp files for CSV inputs
-    handle, site_info['pewFile'] = tempfile.mkstemp()
-    os.close( handle )
-    request.files['pewFile'].save( site_info['pewFile'] )
-    handle, site_info['familyFile'] = tempfile.mkstemp()
-    os.close( handle )
-    request.files['familyFile'].save( site_info['familyFile'] )
+        # Save snapshot of inputs for error messaging
+        inputs = dict(site_info)
+        inputs['pewFile'] = inputs['pewFile'].filename
+        inputs['familyFile'] = inputs['familyFile'].filename
 
-    # Call backend
-    with tempfile.NamedTemporaryFile(mode='w+') as temp_output_file, \
-            open( site_info['pewFile'] ) as pew_file, \
-            open( site_info['familyFile'] ) as family_file:
-        site_info['pewFile'] = open( site_info['pewFile'] )
-        site_info['familyFile'] = open( site_info['familyFile'] )
-        main_driver( site_info, temp_output_file )
+        # Call backend
+        with tempfile.NamedTemporaryFile(mode='w+') as temp_output_file, \
+                tempfile.NamedTemporaryFile(mode='w+') as pew_file, \
+                tempfile.NamedTemporaryFile(mode='w+') as family_file:
+            request.files['pewFile'].save( pew_file.name )
+            request.files['familyFile'].save( family_file.name )
+            site_info['pewFile'] = (pew_file, request.files['pewFile'].filename)
+            site_info['familyFile'] = (family_file, request.files['familyFile'].filename)
+            main_driver( site_info, temp_output_file )
 
-        # Stream file object back
-        temp_output_file.seek(0)
-        return send_file( temp_output_file.name, as_attachment=True )
+            # Stream file object back
+            temp_output_file.seek(0)
+            return send_file( temp_output_file.name, as_attachment=True )
+    except InvalidUsage:
+        raise # Let InvalidUsage propagate up the stack.
+    except:
+        message = ("A fatal server error has occurred. Please relay the entirety"
+                   " of this message to a developer.")
+        error = {
+            'trace': traceback.format_exc(),
+            'inputs': inputs,
+        }
+        raise InternalError(message, error)

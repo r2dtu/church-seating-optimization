@@ -1,3 +1,70 @@
 .form-control::placeholder {
   color: rgba(0, 0, 0, 0.4) !important;
 }
+
+pre {
+  margin-bottom: 0;
+}
+
+.alert-enter {
+  opacity: 0.01;
+}
+
+.alert-enter.alert-enter-active {
+  opacity: 1;
+  transition: opacity 300ms linear;
+}
+
+.alert-leave {
+  opacity: 1;
+}
+
+.alert-leave.alert-leave-active {
+  opacity: 0.01;
+  transition: opacity 300ms linear;
+}
+
+table.table-view {
+  color: #a57d04;
+  border-collapse: collapse;
+}
+
+table.table-view td, table.table-view th {
+  width: 50px;
+  padding: 0 5px;
+}
+
+.table-view tr:nth-child(1) td {
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-top: 1px solid #a57d04;
+  border-bottom: 1px solid #a57d04;
+}
+
+.table-view tr td:nth-child(1) {
+  text-align: right;
+  width: 0 !important;
+  padding: 0 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-left: 1px solid #a57d04;
+  border-right: 1px solid #a57d04;
+}
+
+.table-view .err-row.err-col {
+  font-weight: bold;
+  background-color: white;
+}
+
+.table-view .err-row {
+  border-top: 1px solid #a57d04;
+  border-bottom: 1px solid #a57d04;
+}
+
+.table-view .err-col {
+  border-left: 1px solid #a57d04;
+  border-right: 1px solid #a57d04;
+}
+
+.text-center {
+  text-align: center;
+}

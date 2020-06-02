@@ -3,7 +3,7 @@ import csv
 from http import HTTPStatus
 from werkzeug.exceptions import BadRequest
 
-from ...error_handlers import InvalidUsage, InternalError
+from ...error_handlers import InvalidUsage
 
 # Family input file constants
 FAMILY_FNAME_IDX = 0
@@ -19,7 +19,7 @@ CAPACITY_IDX = 2
 ##########################################
 ####     Input parsing functions      ####
 ##########################################
-def parse_family_file( family_file ):
+def parse_family_file( family_file, filename=None ):
     """
     Reads the CSV file containing family info. The file must be a CSV file,
     and have the following three columns: Family Name, Size of Family, E-mail
@@ -37,6 +37,9 @@ def parse_family_file( family_file ):
 
     # Parse the seating chart file
     for i, line in enumerate( family_file.readlines() ):
+        # +1 for 1-indexed, and +1 since we skipped the header
+        row_num = i + 2
+
         try:
             row = line.split( "," )
             family_names.append( row[FAMILY_FNAME_IDX] + "," + row[FAMILY_LNAME_IDX] )
@@ -44,39 +47,39 @@ def parse_family_file( family_file ):
             family_emails.append( row[FAMILY_EMAIL_IDX] )
 
         except ValueError:
-            message = "This line contains a non-parseable family size value. "\
-                      "Please fix it and try submitting again."
             error = {
                 'errors': [
                     {
-                        'file': "Household Reservations",
-                        'row': i + 1,
+                        'description': "This cell contains a non-numerical family size value. "\
+                                       "Please fix it and try submitting again.",
+                        'file': filename or "Household Reservations File",
+                        'row': row_num,
                         'col': FAMILY_SIZE_IDX + 1,
                         'text': line,
                     }
                 ]
             }
-            raise InvalidUsage( message, error )
+            raise InvalidUsage( error )
 
         if '@' not in row[FAMILY_EMAIL_IDX]:
-            message = "This line contains a non-parseable e-mail address. "\
-                      "Please fix it and try submitting again."
             error = {
                 'errors': [
                     {
-                        'file': "Household Reservations",
-                        'row': i + 1,
+                        'description': "This cell contains an invalid e-mail address. "\
+                                       "Please fix it and try submitting again.",
+                        'file': filename or "Household Reservations File",
+                        'row': row_num,
                         'col': FAMILY_EMAIL_IDX + 1,
                         'text': line,
                     }
                 ]
             }
-            raise InvalidUsage( message, error )
+            raise InvalidUsage( error )
 
     return family_names, np.array( family_sizes ).astype(int), family_emails
 
 
-def parse_seating_file( seating_file ):
+def parse_seating_file( seating_file, filename=None ):
     """
     Reads the CSV file containing pew information. The file must be a CSV file,
     and have the following three columns: Section, Row #, Capacity.
@@ -92,23 +95,26 @@ def parse_seating_file( seating_file ):
 
     # Parse the seating chart file
     for i, line in enumerate( seating_file.readlines() ):
+        # +1 for 1-indexed, and +1 since we skipped the header
+        row_num = i + 2
+
         try:
             row = line.split( "," )
             pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], int( row[CAPACITY_IDX] )] )
         except ValueError:
-            message = "This line contains a non-parseable pew capacity (size) value. "\
-                      "Please fix it and try submitting again."
             error = {
                 'errors': [
                     {
-                        'file': "Pew Seating Info",
-                        'row': i + 1,
+                        'description': "This cell contains a non-numerical pew capacity (size) value. "\
+                                       "Please fix it and try submitting again.",
+                        'file': filename or "Pew Seating Info File",
+                        'row': row_num,
                         'col': CAPACITY_IDX + 1,
                         'text': line,
                     }
                 ]
             }
-            raise InvalidUsage( message, error )
+            raise InvalidUsage( error )
 
     pews = np.array( pews )
 

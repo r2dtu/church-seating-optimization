@@ -3,15 +3,14 @@ from http import HTTPStatus
 
 class InvalidUsage(Exception):
 
-    def __init__(self, message, payload=None):
+    def __init__(self, payload):
         Exception.__init__(self)
-        self.message = message
         self.status_code = HTTPStatus.BAD_REQUEST
         self.payload = payload
 
     def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['description'] = self.message
+        rv = dict(self.payload)
+        rv['description'] = "There were problems with the files given."
         return rv
 
 
