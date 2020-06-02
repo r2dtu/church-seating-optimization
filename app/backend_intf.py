@@ -1,34 +1,11 @@
 import math
 import traceback
-from http import HTTPStatus
 
 from .lib.io import parse_seating_file, parse_family_file, get_section_row_str, transform_output, format_seat_assignments, write_seat_assignments_csv
 from .lib.algo import expand_counts, get_pews
 
 # Main driver constants
 INCHES_PER_FT = 12
-
-def create_json_err_msg( err, inputs, http_status ):
-    json_msg = {}
-    if http_status == HTTPStatus.BAD_REQUEST:
-        # 400 error
-        json_msg['error'] = {
-            'input': err,
-            'description': "One of your input CSV files contains this un-parseable line."\
-                           "Please fix it and try submitting again.",
-        }
-
-    else:
-        # 500 error
-        json_msg['error'] = {
-            'trace': err,
-            'inputs': inputs,
-            'description': "A fatal server error has occurred. Please relay the entirety"\
-                           "of this message to a developer",
-        }
-
-    return json_msg
-
 
 def main_driver( site_info, output_file ):
 
@@ -91,8 +68,11 @@ def main_driver( site_info, output_file ):
         write_seat_assignments_csv( output_file, formatted_rows )
 
     except:
-        tb = traceback.format_exc()
-        json_msg = create_json_err_msg( tb, None, HTTPStatus.INTERNAL_SERVER_ERROR )
-        return json_msg, HTTPStatus.INTERNAL_SERVER_ERROR.value
+        message = "A fatal server error has occurred. Please relay the entirety"\
+                  "of this message to a developer"
+        error = {
+            'trace': traceback.format_exc(),
+            'inputs': locals()
+        }
+        raise InternalError( json_msg, error )
 
-    return "", HTTPStatus.OK

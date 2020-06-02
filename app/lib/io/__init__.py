@@ -1,9 +1,9 @@
 import numpy as np
 import csv
-
 from http import HTTPStatus
 from werkzeug.exceptions import BadRequest
-from ... import backend_intf as bi
+
+from ...error_handlers import InvalidUsage, InternalError
 
 # Family input file constants
 FAMILY_FNAME_IDX = 0
@@ -42,9 +42,36 @@ def parse_family_file( family_file ):
             family_names.append( row[FAMILY_FNAME_IDX] + "," + row[FAMILY_LNAME_IDX] )
             family_sizes.append( int( row[FAMILY_SIZE_IDX] ) )
             family_emails.append( row[FAMILY_EMAIL_IDX] )
+
         except ValueError:
-            err_str = bi.create_json_err_msg( "Family Reservations File: Line " + str( i + 1 ) + " – \"" + line + "\"", None, HTTPStatus.BAD_REQUEST )
-            raise BadRequest( description=err_str )
+            message = "This line contains a non-parseable family size value. "\
+                      "Please fix it and try submitting again."
+            error = {
+                'errors': [
+                    {
+                        'file': "Household Reservations",
+                        'row': i + 1,
+                        'col': FAMILY_SIZE_IDX + 1,
+                        'text': line,
+                    }
+                ]
+            }
+            raise InvalidUsage( message, error )
+
+        if '@' not in row[FAMILY_EMAIL_IDX]:
+            message = "This line contains a non-parseable e-mail address. "\
+                      "Please fix it and try submitting again."
+            error = {
+                'errors': [
+                    {
+                        'file': "Household Reservations",
+                        'row': i + 1,
+                        'col': FAMILY_EMAIL_IDX + 1,
+                        'text': line,
+                    }
+                ]
+            }
+            raise InvalidUsage( message, error )
 
     return family_names, np.array( family_sizes ).astype(int), family_emails
 
@@ -69,8 +96,19 @@ def parse_seating_file( seating_file ):
             row = line.split( "," )
             pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], int( row[CAPACITY_IDX] )] )
         except ValueError:
-            err_str = bi.create_json_err_msg( "Pew Info File: Line " + str( i + 1 ) + " – \"" + line + "\"", None, HTTPStatus.BAD_REQUEST )
-            raise BadRequest( description=err_str )
+            message = "This line contains a non-parseable pew capacity (size) value. "\
+                      "Please fix it and try submitting again."
+            error = {
+                'errors': [
+                    {
+                        'file': "Pew Seating Info",
+                        'row': i + 1,
+                        'col': CAPACITY_IDX + 1,
+                        'text': line,
+                    }
+                ]
+            }
+            raise InvalidUsage( message, error )
 
     pews = np.array( pews )
 

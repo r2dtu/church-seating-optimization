@@ -8,17 +8,35 @@ from http import HTTPStatus
 
 from .lib.constants import OUTPUT_FILE
 from .backend_intf import main_driver
+from .error_handlers import InvalidUsage, InternalError
 
 # Run the app
 app = Flask(__name__, static_folder='../build', static_url_path='/')
 
+# Error handlers
+@app.errorhandler(InvalidUsage)
+def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
+@app.errorhandler(InternalError)
+def handle_internal_error(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+# Views
 @app.route("/")
 def home_view():
     return app.send_static_file('index.html')
 
+
 @app.route("/api/test", methods = ["GET"])
 def test():
     return jsonify('alive')
+
 
 @app.route("/api/upload", methods = ["POST"])
 def upload():
@@ -40,15 +58,13 @@ def upload():
     request.files['familyFile'].save( site_info['familyFile'] )
 
     # Call backend
-    with tempfile.NamedTemporaryFile(mode='w+') as temp_output_file, open( site_info['pewFile'] ) as pew_file, open( site_info['familyFile'] ) as family_file:
+    with tempfile.NamedTemporaryFile(mode='w+') as temp_output_file, \
+            open( site_info['pewFile'] ) as pew_file, \
+            open( site_info['familyFile'] ) as family_file:
         site_info['pewFile'] = open( site_info['pewFile'] )
         site_info['familyFile'] = open( site_info['familyFile'] )
-        err_msg, status_code = main_driver( site_info, temp_output_file )
+        main_driver( site_info, temp_output_file )
 
-        if status_code == HTTPStatus.OK:
-            # Stream file object back
-            temp_output_file.seek(0)
-            return send_file( temp_output_file.name, as_attachment=True )
-
-        else:
-            return jsonify( err_msg ), status_code
+        # Stream file object back
+        temp_output_file.seek(0)
+        return send_file( temp_output_file.name, as_attachment=True )
