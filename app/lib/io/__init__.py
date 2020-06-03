@@ -3,6 +3,7 @@ import csv
 from http import HTTPStatus
 from werkzeug.exceptions import BadRequest
 from enum import IntEnum
+import re
 
 from ...error_handlers import InvalidUsage
 
@@ -91,7 +92,7 @@ def parse_family_file( family_file, filename=None ):
             raise InvalidUsage( err_obj.to_dict() )
 
         EMAIL_REGEX = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
-        if re.search( EMAIL_REGEX, row[FamilyFile.FAMILY_EMAIL_IDX] ):
+        if not re.search( EMAIL_REGEX, row[FamilyFile.FAMILY_EMAIL_IDX] ):
             err_obj = ErrorObj( "This cell contains an invalid e-mail address. "\
                                 "Please fix it and try submitting again.",
                                 filename or "Household Reservations File",
