@@ -162,7 +162,7 @@ function App() {
             </Col>
           </Row>
         </CSSTransition>}
-        {inputError.description && <CSSTransition
+        {inputError.errors && <CSSTransition
           key="inputError"
           classNames="alert"
           timeout={500}>
