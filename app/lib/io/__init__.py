@@ -136,7 +136,10 @@ def parse_seating_file( seating_file, filename=None ):
                                     line )
                 raise InvalidUsage( err_obj.to_dict() )
 
-            pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
+            if len(row) > len(PewFile) and row[len(PewFile) + 1] == 'R':
+                # Ignore the pew
+            else:
+                pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
 
         except ValueError:
             err_obj = ErrorObj( "This cell is empty or contains a non-numerical pew capacity (size) value. "\
