@@ -13,7 +13,7 @@ import TableView from './TableView';
 
 import { validationSchema, initialValues } from '../utils/validation';
 import { replaceErrors } from '../utils/error';
-import { cell } from '../utils/spreadsheet';
+import { location } from '../utils/spreadsheet';
 
 // Taken from this lovely post: https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 const downloadBlob = (blob, filename) => {
@@ -47,6 +47,17 @@ const downloadBlob = (blob, filename) => {
   // Without attaching the anchor element to the DOM
   // Comment out this line if you don't want an automatic download of the blob content
   a.click();
+};
+
+const InputErrorText = ({ error }) => {
+  const [at, loc] = location(error.row, error.col);
+  console.log(error);
+  return (
+    <div>
+      <div>In file <strong>"{error.file}"</strong>{at}{loc && <strong>{loc}</strong>}: {error.description}</div>
+      {(error.row !== -1 && error.col !== -1) && <TableView className="ml-2 mt-2" {...error} />}
+    </div>
+  );
 };
 
 function App() {
@@ -159,10 +170,7 @@ function App() {
             <Col>
               <Alert variant="warning">
                 <div>{inputError.description}</div>
-                {inputError.errors.map((error, i) => (<div key={i}>
-                  <div>In file <strong>"{error.file}"</strong> at cell <strong>{cell(error.row, error.col)}</strong>: {error.description}</div>
-                  <TableView className="ml-2 mt-2" {...error} />
-                </div>))}
+                {inputError.errors.map((error, i) => <InputErrorText key={i} error={error} />)}
               </Alert>
             </Col>
           </Row>
