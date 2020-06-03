@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 import { Formik } from 'formik';
-import * as yup from 'yup';
 
 import Alert from 'react-bootstrap/Alert';
 import Container from 'react-bootstrap/Container';
@@ -12,29 +11,9 @@ import Row from 'react-bootstrap/Row';
 import InputForm from './InputForm';
 import TableView from './TableView';
 
+import { validationSchema, initialValues } from '../utils/validation';
 import { replaceErrors } from '../utils/error';
 import { cell } from '../utils/spreadsheet';
-
-const isCsvType = (value) => {
-  return value && value.type === 'text/csv';
-}
-const schema = yup.object({
-  maxCapacity: yup.number().min(1, 'Must have at least one spot of capacity.').required('A maximum capacity is required.'),
-  reservedSeating: yup.number().min(0, 'Cannot have a negative number of seats.').max(yup.ref('maxCapacity'), 'Reserved seating cannot exceed maximum capacity.').required('Reserved seating is required.'),
-  separationRadius: yup.number().required('A separation radius is required.'),
-  seatWidth: yup.number().min(1, 'Seats must have a positive non-zero width.').required('A seat width is required.'),
-  pewFile: yup.mixed().required('A pew file is required.').test('fileFormat', 'Must be a CSV file.', isCsvType),
-  familyFile: yup.mixed().required('A household file is required.').test('fileFormat', 'Must be a CSV file.', isCsvType),
-});
-
-const initialValues = {
-  maxCapacity: '',
-  reservedSeating: '',
-  separationRadius: '',
-  seatWidth: '',
-  pewFile: '',
-  familyFile: '',
-};
 
 // Taken from this lovely post: https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 const downloadBlob = (blob, filename) => {
@@ -76,11 +55,13 @@ function App() {
   const [exception, setException] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const bottomRef = useRef(null);
+
   const handleSubmit = async (data, formik) => {
     // Need a helper function to reset files on error, so that users don't try resubmitting with cached page data.
     const resetFiles = (validate = false) => {
-      formik.setFieldValue('pewFile', '', validate);
-      formik.setFieldValue('familyFile', '', validate);
+      formik.setFieldValue('pewFile', null, validate);
+      formik.setFieldValue('familyFile', null, validate);
     };
 
     // Package the data into a FormData for the request.
@@ -130,6 +111,7 @@ function App() {
         resetFiles();
       }
 
+      bottomRef.current.scrollIntoView({ block: 'end', behavior: 'smooth' });
     } catch (err) {
       // Super fatal error happened, like a network timeout.
       setException(JSON.stringify(err, replaceErrors));
@@ -137,12 +119,12 @@ function App() {
   };
 
   return (
-    <Container className="py-4">
+    <Container className="py-4" ref={bottomRef}>
       <h1>Church Seating Optimization Program</h1>
       <Row className="mb-3">
         <Col>
           <Formik
-            validationSchema={schema}
+            validationSchema={validationSchema}
             onSubmit={handleSubmit}
             initialValues={initialValues}>
             {InputForm}

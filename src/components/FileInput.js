@@ -7,14 +7,15 @@ const FileInput = ({ label, placeholder, explanation, field, form, meta, ...prop
     <>
       <Form.Label>{label}</Form.Label>
       <Form.File
-        label={field.value.name || placeholder}
+        label={field.value?.name || placeholder}
         custom
         feedback={meta.error}
         name={field.name}
         onBlur={field.onBlur}
         onChange={(event) => {
           const file = event.currentTarget.files[0];
-          form.setFieldValue(field.name, file);
+          const fileValue = file ? file : null;
+          form.setFieldValue(field.name, fileValue);
         }}
         {...props}
       />
