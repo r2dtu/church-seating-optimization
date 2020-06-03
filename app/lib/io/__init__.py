@@ -138,7 +138,7 @@ def parse_seating_file( seating_file, filename=None ):
             pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
 
         except ValueError:
-            err_obj = ErrorObj( "This cell contains a non-numerical pew capacity (size) value. "\
+            err_obj = ErrorObj( "This cell is empty or contains a non-numerical pew capacity (size) value. "\
                                 "Please fix it and try submitting again.",
                                 filename or "Pew Seating Info File",
                                 row_num,
