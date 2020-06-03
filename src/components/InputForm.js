@@ -31,7 +31,7 @@ const InputForm = (formik) => {
           label="Number of Reserved Seating"
           placeholder="e.g. 10"
           isInvalid={touched.reservedSeating && !!errors.reservedSeating}
-          explanation="This number represents the number of people to not include in the seating chart, but need space in the church to sit. Do not include the pews you are reserving for them in the pew info CSV file. This number is only used in calculating how many potential families can be seated."
+          explanation="This number represents the number of people to not include in the seating chart, but need space in the church to sit. Do not include the pews you are reserving for them in the pew info CSV file. This number is only used in calculating how many families can potentially be seated."
         />
       </Form.Group>
       <Form.Group>
@@ -59,7 +59,7 @@ const InputForm = (formik) => {
               label="Pew Info CSV File"
               placeholder="No file chosen"
               isInvalid={touched.pewFile && !!errors.pewFile}
-              explanation="The CSV file containing information about pew section, rows, and sizes (in number of seats)."
+              explanation="The CSV file containing information about pew section, rows, and sizes (in number of seats). NOTE: Only include available pews for groups to be seated in this file. Information about reserved pews should not be present in this file."
               {...props}
             />
           )}
@@ -72,7 +72,7 @@ const InputForm = (formik) => {
               label="Household Info CSV File"
               placeholder="No file chosen"
               isInvalid={touched.familyFile && !!errors.familyFile}
-              explanation="The CSV file containing information about household names, contact infor, and sizes (in number of people)."
+              explanation="The CSV file containing information about household names, contact information, and sizes (in number of people). NOTE: Families with sizes larger than the largest pew size will not be seated! Please break them up into different groups if able."
               {...props}
             />
           )}

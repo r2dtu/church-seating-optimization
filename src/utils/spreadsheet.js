@@ -15,3 +15,24 @@ export const columnNameForNum = (n) => {
 };
 
 export const cell = (row, col) => columnNameForNum(col) + row;
+
+/**
+ * Returns the "location" of a (row, col) pair.
+ * The location is a tuple of a prepsoitional phrase, paired with the
+ * actual number or cell that represents the (row, col) pair.
+ */
+export const location = (row, col) => {
+  if (col === -1 && row === -1) {
+    return ['', ''];
+  }
+
+  if (col === -1) {
+    return [' at row ', row];
+  }
+  
+  if (row === -1) {
+    return [' at column ', col];
+  }
+
+  return [' at cell ', cell(row, col)];
+}
