@@ -12,7 +12,7 @@ from .backend_intf import main_driver
 from .error_handlers import InvalidUsage, InternalError
 
 # Run the app
-app = Flask(__name__, static_folder='../build', static_url_path='/', port=int(os.environ.get('PORT', 33507)))
+app = Flask(__name__, static_folder='../build', static_url_path='/')
 
 # Error handlers
 @app.errorhandler(InvalidUsage)
