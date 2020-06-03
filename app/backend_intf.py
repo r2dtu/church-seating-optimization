@@ -30,11 +30,12 @@ def main_driver( site_info, output_file ):
     unseated_families = []
     last_family_seated_idx = 0
 
+    # Stop at the one just before it goes past capacity
     for i, size in enumerate( family_sizes ):
         if curr_family_size <= max_cap:
             curr_family_size += size
         else:
-            last_family_seated_idx = i
+            last_family_seated_idx = i - 1
             break
 
     # Record unseated families, starting at the last family that can

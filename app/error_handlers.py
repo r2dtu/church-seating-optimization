@@ -10,7 +10,6 @@ class InvalidUsage(Exception):
 
     def to_dict(self):
         rv = dict(self.payload)
-        rv['description'] = "There were problems with the files given."
         return rv
 
 

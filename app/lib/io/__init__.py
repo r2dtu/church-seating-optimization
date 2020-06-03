@@ -2,19 +2,43 @@ import numpy as np
 import csv
 from http import HTTPStatus
 from werkzeug.exceptions import BadRequest
+from enum import IntEnum
 
 from ...error_handlers import InvalidUsage
 
 # Family input file constants
-FAMILY_FNAME_IDX = 0
-FAMILY_LNAME_IDX = 1
-FAMILY_SIZE_IDX = 2
-FAMILY_EMAIL_IDX = 3
+class FamilyFile(IntEnum):
+    FAMILY_FNAME_IDX = 0
+    FAMILY_LNAME_IDX = 1
+    FAMILY_SIZE_IDX = 2
+    FAMILY_EMAIL_IDX = 3
 
 # Pew seating file constants
-SECTION_COL_IDX = 0
-ROW_NUM_IDX = 1
-CAPACITY_IDX = 2
+class PewFile(IntEnum):
+    SECTION_COL_IDX = 0
+    ROW_NUM_IDX = 1
+    CAPACITY_IDX = 2
+
+
+##########################################
+####     Error Message functions      ####
+##########################################
+class ErrorObj():
+
+    def __init__(self, description, filename, row_num, col_num, line_text):
+        self.description = description
+        self.file = filename
+        self.row = row_num
+        self.col = col_num
+        self.text = line_text
+        self._dict = dict()
+
+    def to_dict(self):
+        loc = vars(self)
+        errors = dict([(i, loc[i]) for i in ('description', 'file', 'row', 'col', 'text')])
+        self._dict['errors'] = [ errors ]
+        return self._dict
+
 
 ##########################################
 ####     Input parsing functions      ####
@@ -41,40 +65,40 @@ def parse_family_file( family_file, filename=None ):
         row_num = i + 2
 
         try:
+            line = line.strip()
             row = line.split( "," )
-            family_names.append( row[FAMILY_FNAME_IDX] + "," + row[FAMILY_LNAME_IDX] )
-            family_sizes.append( int( row[FAMILY_SIZE_IDX] ) )
-            family_emails.append( row[FAMILY_EMAIL_IDX] )
+
+            if len(row) < len(FamilyFile):
+                err_obj = ErrorObj( "Expected 4 columns, but only found " + str( len(row) ) + " columns in this row. "\
+                                    "Please fix it and try submitting again.",
+                                    filename or "Household Reservations File",
+                                    row_num,
+                                    -1,
+                                    line )
+                raise InvalidUsage( err_obj.to_dict() )
+
+            family_names.append( row[FamilyFile.FAMILY_FNAME_IDX] + "," + row[FamilyFile.FAMILY_LNAME_IDX] )
+            family_sizes.append( int( row[FamilyFile.FAMILY_SIZE_IDX] ) )
+            family_emails.append( row[FamilyFile.FAMILY_EMAIL_IDX] )
 
         except ValueError:
-            error = {
-                'errors': [
-                    {
-                        'description': "This cell contains a non-numerical family size value. "\
-                                       "Please fix it and try submitting again.",
-                        'file': filename or "Household Reservations File",
-                        'row': row_num,
-                        'col': FAMILY_SIZE_IDX + 1,
-                        'text': line,
-                    }
-                ]
-            }
-            raise InvalidUsage( error )
+            err_obj = ErrorObj( "This cell contains a non-numerical family size value. "\
+                                "Please fix it and try submitting again.",
+                                filename or "Household Reservations File",
+                                row_num,
+                                FamilyFile.FAMILY_SIZE_IDX + 1,
+                                line )
+            raise InvalidUsage( err_obj.to_dict() )
 
-        if '@' not in row[FAMILY_EMAIL_IDX]:
-            error = {
-                'errors': [
-                    {
-                        'description': "This cell contains an invalid e-mail address. "\
-                                       "Please fix it and try submitting again.",
-                        'file': filename or "Household Reservations File",
-                        'row': row_num,
-                        'col': FAMILY_EMAIL_IDX + 1,
-                        'text': line,
-                    }
-                ]
-            }
-            raise InvalidUsage( error )
+        EMAIL_REGEX = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
+        if re.search( EMAIL_REGEX, row[FamilyFile.FAMILY_EMAIL_IDX] ):
+            err_obj = ErrorObj( "This cell contains an invalid e-mail address. "\
+                                "Please fix it and try submitting again.",
+                                filename or "Household Reservations File",
+                                row_num,
+                                FamilyFile.FAMILY_EMAIL_IDX + 1,
+                                line )
+            raise InvalidUsage( err_obj.to_dict() )
 
     return family_names, np.array( family_sizes ).astype(int), family_emails
 
@@ -95,26 +119,32 @@ def parse_seating_file( seating_file, filename=None ):
 
     # Parse the seating chart file
     for i, line in enumerate( seating_file.readlines() ):
+        line = line.strip()
         # +1 for 1-indexed, and +1 since we skipped the header
         row_num = i + 2
 
         try:
             row = line.split( "," )
-            pews.append( [row[SECTION_COL_IDX], row[ROW_NUM_IDX], int( row[CAPACITY_IDX] )] )
+
+            if len(row) < len(PewFile):
+                err_obj = ErrorObj( "Expected 3 columns, but only found " + str( len(row) ) + " columns in this row. "\
+                                    "Please fix it and try submitting again.",
+                                    filename or "Pew Seating Info File",
+                                    row_num,
+                                    -1,
+                                    line )
+                raise InvalidUsage( err_obj.to_dict() )
+
+            pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
+
         except ValueError:
-            error = {
-                'errors': [
-                    {
-                        'description': "This cell contains a non-numerical pew capacity (size) value. "\
-                                       "Please fix it and try submitting again.",
-                        'file': filename or "Pew Seating Info File",
-                        'row': row_num,
-                        'col': CAPACITY_IDX + 1,
-                        'text': line,
-                    }
-                ]
-            }
-            raise InvalidUsage( error )
+            err_obj = ErrorObj( "This cell contains a non-numerical pew capacity (size) value. "\
+                                "Please fix it and try submitting again.",
+                                filename or "Pew Seating Info File",
+                                row_num,
+                                PewFile.CAPACITY_IDX + 1,
+                                line )
+            raise InvalidUsage( err_obj.to_dict() )
 
     pews = np.array( pews )
 
@@ -125,14 +155,14 @@ def __get_pew_ids( pew_info ):
     """
     Returns the section and row IDs
     """
-    return pew_info[:, SECTION_COL_IDX], pew_info[:, ROW_NUM_IDX]
+    return pew_info[:, PewFile.SECTION_COL_IDX], pew_info[:, PewFile.ROW_NUM_IDX]
 
 
 def __get_pew_sizes( pew_info ):
     """
     Returns a list of the pew sizes from the pew info matrix.
     """
-    return pew_info[:, CAPACITY_IDX].astype(int)
+    return pew_info[:, PewFile.CAPACITY_IDX].astype(int)
 
 ##########################################
 ####         Output re-format         ####
