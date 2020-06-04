@@ -138,6 +138,7 @@ def parse_seating_file( seating_file, filename=None ):
 
             if len(row) > len(PewFile) and row[len(PewFile)] == 'R':
                 # Ignore the pew
+                pass
             else:
                 pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
 
