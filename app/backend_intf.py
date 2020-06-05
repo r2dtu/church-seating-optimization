@@ -28,7 +28,9 @@ def main_driver( site_info, output_file ):
 
     curr_family_size = 0
     unseated_families = []
-    last_family_seated_idx = 0
+
+    # If curr_family_size never reaches max_cap, then we can seat all families
+    last_family_seated_idx = len( family_sizes ) - 1
 
     # Stop at the one just before it goes past capacity
     for i, size in enumerate( family_sizes ):
