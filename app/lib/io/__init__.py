@@ -91,7 +91,8 @@ def parse_family_file( family_file, filename=None ):
                                 line )
             raise InvalidUsage( err_obj.to_dict() )
 
-        EMAIL_REGEX = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
+        # Needs to be able to handle subdomains
+        EMAIL_REGEX = '^([\w\.\-]+)@([\w\-]+)((\.(\w){2,63}){1,3})$'
         if not re.search( EMAIL_REGEX, row[FamilyFile.FAMILY_EMAIL_IDX] ):
             err_obj = ErrorObj( "This cell contains an invalid e-mail address. "\
                                 "Please fix it and try submitting again.",
