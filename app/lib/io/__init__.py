@@ -243,7 +243,13 @@ def format_seat_assignments( assigned_seating, family_names, family_sizes, famil
             size = family[1]
 
             # Get the family's info to print
+            # TODO hacky fix for now, will find a better/faster solution
             idx = family_names.index( family[0] )
+            if family_sizes[idx] != size:
+                for i in range(idx, len(family_names)):
+                    if family_sizes[i] == size and family_names[i] == family[0]:
+                       idx = i
+                       break
 
             row = ("N", fname, lname, family_sizes[idx], family_emails[idx])
             row += get_section_row_str( row_idx, pew_ids )
