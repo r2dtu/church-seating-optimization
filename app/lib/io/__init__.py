@@ -1,18 +1,10 @@
 import numpy as np
 import csv
-from http import HTTPStatus
-from werkzeug.exceptions import BadRequest
-from enum import IntEnum
 import re
+from enum import IntEnum
 
 from ...error_handlers import InvalidUsage
-
-# Family input file constants
-class FamilyFile(IntEnum):
-    FAMILY_FNAME_IDX = 0
-    FAMILY_LNAME_IDX = 1
-    FAMILY_SIZE_IDX = 2
-    FAMILY_EMAIL_IDX = 3
+from .Family import FamilyFile, FamilyInfo, get_family_names, get_family_sizes, get_family_emails
 
 # Pew seating file constants
 class PewFile(IntEnum):
@@ -53,9 +45,7 @@ def parse_family_file( family_file, filename=None ):
     info, so it's important to keep them in this order when assigning to 
     populate the seating arrangement with the correct information.
     """
-    family_names = []
-    family_sizes = []
-    family_emails = []
+    families = []
 
     # Discard the first row of column labels
     family_file.readline()
@@ -70,7 +60,7 @@ def parse_family_file( family_file, filename=None ):
             row = line.split( "," )
 
             if len(row) < len(FamilyFile):
-                err_obj = ErrorObj( "Expected 4 columns, but only found " + str( len(row) ) + " columns in this row. "\
+                err_obj = ErrorObj( "Family file: Expected 4 columns, but only found " + str( len(row) ) + " columns in this row. "\
                                     "Please fix it and try submitting again.",
                                     filename or "Household Reservations File",
                                     row_num,
@@ -78,9 +68,10 @@ def parse_family_file( family_file, filename=None ):
                                     line )
                 raise InvalidUsage( err_obj.to_dict() )
 
-            family_names.append( row[FamilyFile.FAMILY_FNAME_IDX] + "," + row[FamilyFile.FAMILY_LNAME_IDX] )
-            family_sizes.append( int( row[FamilyFile.FAMILY_SIZE_IDX] ) )
-            family_emails.append( row[FamilyFile.FAMILY_EMAIL_IDX] )
+            families.append( FamilyInfo( row[FamilyFile.FAMILY_FNAME_IDX], 
+                                        row[FamilyFile.FAMILY_LNAME_IDX],
+                                        int( row[FamilyFile.FAMILY_SIZE_IDX] ), 
+                                        row[FamilyFile.FAMILY_EMAIL_IDX] ) )
 
         except ValueError:
             err_obj = ErrorObj( "This cell contains a non-numerical family size value. "\
@@ -102,7 +93,7 @@ def parse_family_file( family_file, filename=None ):
                                 line )
             raise InvalidUsage( err_obj.to_dict() )
 
-    return family_names, np.array( family_sizes ).astype(int), family_emails
+    return families
 
 
 def parse_seating_file( seating_file, filename=None ):
@@ -128,8 +119,8 @@ def parse_seating_file( seating_file, filename=None ):
         try:
             row = line.split( "," )
 
-            if len(row) < len(PewFile):
-                err_obj = ErrorObj( "Expected 3 columns, but only found " + str( len(row) ) + " columns in this row. "\
+            if len(row) != len(PewFile):
+                err_obj = ErrorObj( "PewFile - Expected 3 columns, but found " + str( len(row) ) + " columns in this row. "\
                                     "Please fix it and try submitting again.",
                                     filename or "Pew Seating Info File",
                                     row_num,
@@ -137,11 +128,7 @@ def parse_seating_file( seating_file, filename=None ):
                                     line )
                 raise InvalidUsage( err_obj.to_dict() )
 
-            if len(row) > len(PewFile) and row[len(PewFile)] == 'R':
-                # Ignore the pew: it's "reserved"
-                pass
-            else:
-                pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
+            pews.append( [row[PewFile.SECTION_COL_IDX], row[PewFile.ROW_NUM_IDX], int( row[PewFile.CAPACITY_IDX] )] )
 
         except ValueError:
             err_obj = ErrorObj( "This cell is empty or contains a non-numerical pew capacity (size) value. "\
@@ -173,7 +160,7 @@ def __get_pew_sizes( pew_info ):
 ##########################################
 ####         Output re-format         ####
 ##########################################
-def transform_output( optimal_pew_groups, family_names, family_sizes ):
+def transform_output( optimal_pew_groups, families_left, seatable_family_info ):
     """
     Transforms the optimal seating list into a printable list with family name
     assigned seating.
@@ -188,12 +175,14 @@ def transform_output( optimal_pew_groups, family_names, family_sizes ):
         The family size values to NOT include the +3 padding. Make sure to call this
         function after re-calculating the actual family sizes.
 
-        family_names - list of family names
-        family_sizes - corresponding list of size of families
+        seatable_family_info - list of families
 
     Returns:
         List of tuples with pews and families that can sit there
     """
+    family_names = get_family_names( seatable_family_info )
+    family_sizes = get_family_sizes( seatable_family_info )
+
     # Convert family and family sizes to an internal mapping.
     # Family names with size s will exist in a list at map[s - 1].
     family_name_size_map = [[] for _ in range( max( family_sizes ) )]
@@ -211,6 +200,11 @@ def transform_output( optimal_pew_groups, family_names, family_sizes ):
 
         result.append( pew_assign )
 
+    # Append families that could not fit in pews
+    for size in families_left:
+        if families_left[size] > 0:
+            result.append( (-1, [(family_name_size_map[size - 1].pop(0), size)] ) )
+
     return result
 
 
@@ -227,17 +221,22 @@ def get_section_row_str( arr_idx, pew_ids ):
     return sections[arr_idx], sections[arr_idx], rows[arr_idx]
 
 
-def format_seat_assignments( assigned_seating, family_names, family_sizes, family_emails, pew_ids, pew_sizes, margin ):
+def format_seat_assignments( assigned_seating, family_info, pew_ids, pew_sizes, margin ):
     """
     Input looks like:
     [(row_idx, [('family1_name', family1_size), ...]), ...]
     """
+    family_names = get_family_names( family_info )
+    family_emails = get_family_emails( family_info )
+    family_sizes = get_family_sizes( family_info )
+
     rows = []
     for pew in assigned_seating:
         next_open_seat = 0
 
         row_idx = pew[0]
         seating = pew[1]
+
         for family in seating:
             name = family[0].split(",")
             fname, lname = name[0], name[1]
@@ -251,6 +250,11 @@ def format_seat_assignments( assigned_seating, family_names, family_sizes, famil
                     if family_sizes[i] == size and family_names[i] == family[0]:
                        idx = i
                        break
+
+            # If it's an unseated family, there's only one of them in the row
+            if row_idx == -1:
+                rows.append( ("N", fname, lname, size, family_emails[idx] ) )
+                continue
 
             row = ("N", fname, lname, family_sizes[idx], family_emails[idx])
             row += get_section_row_str( row_idx, pew_ids )
