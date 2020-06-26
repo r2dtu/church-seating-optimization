@@ -40,11 +40,15 @@ def main_driver( site_info, output_file ):
     matched_pews, unmatched_pews, families_left = get_pews( family_sizes, pew_sizes, margin )
 
     # TODO handle unmatched pews
-    print( 'Unmatched pews: ', unmatched_pews )
+    print( 'Unmatched (extra) pews: ', unmatched_pews )
 
     # Assign seating to specific families
     assigned_seating = transform_output( matched_pews, families_left, seatable_families )
     formatted_rows = format_seat_assignments( assigned_seating, seatable_families, pew_ids, pew_sizes, margin )
+
+    # Sort by section # (column 7)
+    #sorted(formatted_rows, key = lambda x: x[6]))
+    formatted_rows.sort( key = lambda x: x[6] )
 
     # Append the unseated families to the end, no seat assignments
     unseated_families = [("N", f.fname, f.lname, f.size, f.email) 

@@ -140,8 +140,9 @@ def parse_seating_file( seating_file, filename=None ):
             raise InvalidUsage( err_obj.to_dict() )
 
     pews = np.array( pews )
+    pews_sorted = pews[np.argsort( pews[:,PewFile.ROW_NUM_IDX] )]
 
-    return __get_pew_ids(pews), __get_pew_sizes(pews)
+    return __get_pew_ids(pews_sorted), __get_pew_sizes(pews_sorted)
 
 
 def __get_pew_ids( pew_info ):
