@@ -1,7 +1,9 @@
 import * as yup from 'yup';
 
+// text/csv is normal
+// the other garbage is for Windows
 const isCsvType = (value) => {
-  return value && value.type === 'text/csv';
+  return value && (value.type === 'text/csv' || value.type === 'application/vnd.ms-excel');
 }
 
 export const validationSchema = yup.object({
