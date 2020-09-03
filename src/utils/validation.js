@@ -1,9 +1,10 @@
 import * as yup from 'yup';
 
 // text/csv is normal
-// the other garbage is for Windows
+// the extension check is for Windows browsers bc their mime types are just wack
+// e.g. application/vnd.openxmlformats-officedocument.spreadsheetml.sheet -- MY EYES
 const isCsvType = (value) => {
-  return value && (value.type === 'text/csv' || value.type === 'application/vnd.ms-excel');
+  return value && (value.type === 'text/csv' || value.name.endsWith( '.csv' ))
 }
 
 export const validationSchema = yup.object({
